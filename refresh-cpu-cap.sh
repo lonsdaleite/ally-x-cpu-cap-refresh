@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Wait for late USB-C/PD/EC power events after the initial AC0/BAT0 events.
+START_DELAY_SECONDS=3
+
+# Avoid repeated refreshes from bursts of power_supply events.
+COOLDOWN_SECONDS=4
+
+# Need a large enough step to change effective CPPC MAX.
+# On this Ally X: 2000000 -> 1970000 changes CPPC MAX 77 -> 76.
+MAX_FREQ_STEP_KHZ=30000
+
+STAMP="/run/refresh-cpu-cap.last"
+CPU_PATH="/sys/devices/system/cpu"
+
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "This script must be run as root. Try: sudo $0" >&2
+  exit 1
+fi
+
+sleep "$START_DELAY_SECONDS"
+
+now="$(date +%s)"
+last="0"
+
+if [[ -r "$STAMP" ]]; then
+  last="$(cat "$STAMP")"
+fi
+
+if (( now - last < COOLDOWN_SECONDS )); then
+  echo "Skipped: cooldown"
+  exit 0
+fi
+
+echo "$now" > "$STAMP"
+
+CPU0_MAX="$CPU_PATH/cpu0/cpufreq/scaling_max_freq"
+CPU0_MIN="$CPU_PATH/cpu0/cpufreq/scaling_min_freq"
+
+cur="$(cat "$CPU0_MAX")"
+min="$(cat "$CPU0_MIN")"
+
+tmp=$((cur - MAX_FREQ_STEP_KHZ))
+
+if (( tmp < min )); then
+  tmp="$min"
+fi
+
+if (( tmp == cur )); then
+  echo "Cannot refresh CPU cap: temporary max equals current max ($cur)" >&2
+  exit 1
+fi
+
+write_all_max_freq() {
+  local value="$1"
+  local found=0
+
+  for f in "$CPU_PATH"/cpu[0-9]*/cpufreq/scaling_max_freq; do
+    [[ -e "$f" ]] || continue
+    found=1
+
+    if [[ ! -w "$f" ]]; then
+      echo "No write permission for $f. Run as root." >&2
+      exit 2
+    fi
+
+    echo "$value" > "$f"
+  done
+
+  if (( found == 0 )); then
+    echo "No scaling_max_freq files found." >&2
+    exit 3
+  fi
+}
+
+echo "Refreshing CPU cap: $cur -> $tmp -> $cur"
+
+write_all_max_freq "$tmp"
+sleep 0.2
+write_all_max_freq "$cur"
+
+echo "Done."

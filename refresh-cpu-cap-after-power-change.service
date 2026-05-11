@@ -1,0 +1,6 @@
+[Unit]
+Description=Refresh amd-pstate CPU cap after power source change
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/refresh-cpu-cap.sh
