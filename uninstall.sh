@@ -10,8 +10,8 @@ rm -f /usr/local/bin/refresh-cpu-cap.sh
 rm -f /etc/systemd/system/refresh-cpu-cap-after-power-change.service
 rm -f /etc/udev/rules.d/99-refresh-cpu-cap-on-power.rules
 
-# Runtime state files.
-rm -f /run/refresh-cpu-cap.last
+# Runtime lock file.
+rm -f /run/refresh-cpu-cap.lock
 
 systemctl daemon-reload
 udevadm control --reload-rules

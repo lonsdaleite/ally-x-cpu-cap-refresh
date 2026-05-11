@@ -4,14 +4,11 @@ set -euo pipefail
 # Wait for late USB-C/PD/EC power events after the initial AC0/BAT0 events.
 START_DELAY_SECONDS=3
 
-# Avoid repeated refreshes from bursts of power_supply events.
-COOLDOWN_SECONDS=4
-
 # Need a large enough step to change effective CPPC MAX.
 # On this Ally X: 2000000 -> 1970000 changes CPPC MAX 77 -> 76.
 MAX_FREQ_STEP_KHZ=30000
 
-STAMP="/run/refresh-cpu-cap.last"
+LOCK_FILE="/run/refresh-cpu-cap.lock"
 CPU_PATH="/sys/devices/system/cpu"
 
 if [[ "${EUID}" -ne 0 ]]; then
@@ -19,21 +16,13 @@ if [[ "${EUID}" -ne 0 ]]; then
   exit 1
 fi
 
-sleep "$START_DELAY_SECONDS"
-
-now="$(date +%s)"
-last="0"
-
-if [[ -r "$STAMP" ]]; then
-  last="$(cat "$STAMP")"
-fi
-
-if (( now - last < COOLDOWN_SECONDS )); then
-  echo "Skipped: cooldown"
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "Skipped: busy"
   exit 0
 fi
 
-echo "$now" > "$STAMP"
+sleep "$START_DELAY_SECONDS"
 
 CPU0_MAX="$CPU_PATH/cpu0/cpufreq/scaling_max_freq"
 CPU0_MIN="$CPU_PATH/cpu0/cpufreq/scaling_min_freq"

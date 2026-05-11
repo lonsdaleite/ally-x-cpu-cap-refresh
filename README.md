@@ -18,9 +18,9 @@ Manually changing `scaling_max_freq` from `2000000` to `1970000` and then back t
 
 ## What this workaround does
 
-On every `power_supply` change event, systemd starts a oneshot service.
+On `AC0` mains `power_supply` change events, systemd starts a oneshot service.
 
-The service runs a script that waits 3 seconds before doing anything. This delay is important because AC0/BAT0 events arrive first, while later USB-C/PD/EC events can arrive around 1-2 seconds later. Running the refresh too early may not help.
+The service runs a script that waits 3 seconds before doing anything. This delay is important because initial power events arrive first, while later USB-C/PD/EC events can arrive around 1-2 seconds later. Running the refresh too early may not help.
 
 After the delay, the script briefly changes `scaling_max_freq`:
 
@@ -47,6 +47,12 @@ Run from the repo directory:
 
 ```bash
 sudo ./install.sh
+```
+
+### One-command install from GitHub
+
+```bash
+curl -fsSL "https://github.com/lonsdaleite/ally-x-cpu-cap-refresh/archive/refs/heads/main.tar.gz" | sudo tar -xz -C /tmp && sudo "/tmp/ally-x-cpu-cap-refresh-main/install.sh"
 ```
 
 The install script copies files to:
@@ -78,7 +84,7 @@ Refreshing CPU cap: 2000000 -> 1970000 -> 2000000
 Done.
 ```
 
-`Skipped: cooldown` is normal when several `power_supply` events arrive in a short burst.
+`Skipped: busy` is normal when several events arrive in a short burst.
 
 ## Check udev events
 
@@ -123,6 +129,12 @@ Run from the repo directory:
 
 ```bash
 sudo ./uninstall.sh
+```
+
+### One-command uninstall from GitHub
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/lonsdaleite/ally-x-cpu-cap-refresh/main/uninstall.sh" | sudo bash
 ```
 
 The uninstall script removes installed files and reloads systemd and udev rules.
