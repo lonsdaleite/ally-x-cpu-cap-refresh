@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Wait for late USB-C/PD/EC power events after the initial AC0/BAT0 events.
-START_DELAY_SECONDS=3
+# Wait for late USB-C/PD/EC power events after the initial mains event.
+START_DELAY_SECONDS=1
 
 # Need a large enough step to change effective CPPC MAX.
 # On this Ally X: 2000000 -> 1970000 changes CPPC MAX 77 -> 76.

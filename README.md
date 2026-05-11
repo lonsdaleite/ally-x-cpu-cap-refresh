@@ -20,7 +20,7 @@ Manually changing `scaling_max_freq` from `2000000` to `1970000` and then back t
 
 On `AC0` mains `power_supply` change events, systemd starts a oneshot service.
 
-The service runs a script that waits 3 seconds before doing anything. This delay is important because initial power events arrive first, while later USB-C/PD/EC events can arrive around 1-2 seconds later. Running the refresh too early may not help.
+The service runs a script that waits 1 second before doing anything. This delay is a balance between reacting quickly and still letting immediate power state changes settle.
 
 After the delay, the script briefly changes `scaling_max_freq`:
 
@@ -105,7 +105,7 @@ TAGS=:systemd:
 
 ## Check automatic trigger
 
-After plugging or unplugging the charger, wait around 4-5 seconds, then check:
+After plugging or unplugging the charger, wait around 2-3 seconds, then check:
 
 ```bash
 journalctl -u refresh-cpu-cap-after-power-change.service --since "2 minutes ago" --no-pager
@@ -149,4 +149,4 @@ Current understanding:
 - `CPPC_REQ`, `CPPC_CAP1`, and `HWCR CPB_DIS` do not appear to change.
 - APERF/MPERF confirms that the high frequencies are real, not just a `scaling_cur_freq` reporting issue.
 - A real effective CPPC MAX transition, for example `77 -> 76 -> 77`, restores cap enforcement.
-- The 3-second delay is needed because later USB-C/PD/EC events can arrive after the initial AC0/BAT0 power events.
+- The 1-second delay is a practical compromise between speed and event ordering.
